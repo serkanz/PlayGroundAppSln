@@ -1,18 +1,19 @@
-using System.Data.Common;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics.Internal;
 using Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var serviceCollection = builder.Services;
-serviceCollection.AddDbContext<DataContext>(optionsBuilder =>
+serviceCollection.AddDbContext<IDataContext, DataContext>(optionsBuilder =>
 {
     optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=playgrounddb;Username=playgrounduser;Password=**12qwas**");
 
 });
+serviceCollection.AddMediatR(typeof(Application.Project.List.Handler).Assembly);
 serviceCollection.AddAuthentication();
 serviceCollection.AddAuthorization();
+
 serviceCollection.AddControllers();
 
 var app = builder.Build();
