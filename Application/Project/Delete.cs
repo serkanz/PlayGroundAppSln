@@ -1,25 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using AutoMapper;
-using Dto.Project;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Persistence;
+using NullReferenceException = System.NullReferenceException;
 
 namespace Application.Project
 {
-    public class List
+    public class Delete
     {
-        public class Query : IRequest<IReadOnlyList<ProjectDto>>
+        public class Command : IRequest
         {
-
+            public int Id { get; set; }
         }
-        public class Handler : IRequestHandler<Query, IReadOnlyList<ProjectDto>>
+
+        public class Handler : IRequestHandler<Command>
         {
             private readonly IServiceProvider _serviceProvider;
 
@@ -27,16 +26,21 @@ namespace Application.Project
             {
                 _serviceProvider = serviceProvider;
             }
-
-            public async Task<IReadOnlyList<ProjectDto>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
                 using (var scope = _serviceProvider.CreateScope())
                 {
                     var context = scope.ServiceProvider.GetRequiredService<IDataContext>() ?? throw new InvalidOperationException();
-                    var mapper = scope.ServiceProvider.GetRequiredService<IMapper>() ?? throw new InvalidOperationException();
-                    var projects = await context.Projects.ToListAsync(cancellationToken);
 
-                    return mapper.Map<List<Domain.Project>, IReadOnlyList<ProjectDto>>(projects);
+                    var project = await context.Projects.SingleOrDefaultAsync(p => p.Id == request.Id, cancellationToken: cancellationToken);
+
+                    if (project == null)
+                        throw new NullReferenceException();
+
+                    context.Projects.Remove(project);
+                    await context.SaveChangesAsync(cancellationToken);
+
+                    return Unit.Value;
                 }
             }
         }
